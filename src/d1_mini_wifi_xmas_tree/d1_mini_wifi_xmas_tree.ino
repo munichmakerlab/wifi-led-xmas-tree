@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <ArduinoOTA.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266WiFi.h>
@@ -21,8 +22,6 @@ const char* password = "***topSecret***";
 const char* hostName = "WiFi-LED-XMAS-tree";
 
 const String backToMenuHtml = "<a href=\"/\">go back to menu</a>";
-
-ESP8266WebServer server(80);
 
 const int led = 13;
 
@@ -49,6 +48,21 @@ bool redOn = true;
 bool yellowOn = true;
 bool greenOn = true;
 
+const double CHEN_A = 36.0;
+const double CHEN_B = 3.0;
+const double CHEN_C = 20.0;
+const double CHEN_M = 300.0;
+double chenX = 0.01;
+double chenY = 0.011;
+double chenZ = 25.012;
+
+double minChenX = -60.0;
+double maxChenX = 40.0;
+double minChenY = -80.0;
+double maxChenY = 80.0;
+double minChenZ = 0.0;
+double maxChenZ = 100.0;
+
 const uint8_t COLOR_RED = 0;
 const uint8_t COLOR_GREEN = 96;
 
@@ -57,6 +71,10 @@ uint8_t brightTop = FULL_BRIGHTNESS;
 uint8_t brightRed = 0;
 uint8_t brightYellow = 0;
 uint8_t brightGreen = 0;
+
+int loopCounter = 0;
+
+ESP8266WebServer server(80);
 
 void setup() {
   // put your setup code here, to run once:
@@ -71,10 +89,12 @@ void setup() {
 }
 
 void loop() {
+  loopCounter++;
   server.handleClient();
   ArduinoOTA.handle();
   handleTreeTopLoop();
-  handleLEDsLoop();
+  //handleLEDsLoop();
+  caclculateChen();
 }
 
 void initTopLED() {
@@ -108,9 +128,42 @@ void handleTreeTopLoop()
   FastLED.show();
 }
 
+// paper on chen system http://lsc.amss.ac.cn/~ljh/02LCZ2.pdf
+void caclculateChen(){
+  //PRINT("Calculating Chen...");
+  EVERY_N_MILLISECONDS (1)
+  {
+  double dt = .002;
+
+  chenX += (CHEN_A * ( chenY - chenX)) * dt;
+  chenY += ( -1.0 * (chenX * chenZ) + (CHEN_C * chenY)) * dt;
+  chenZ += ((chenX * chenY) - ( CHEN_B * chenZ) - CHEN_M) * dt;
+
+  //minChenX = min(chenX, minChenX);
+ // minChenY = min(chenY, minChenY);
+ // minChenZ = min(chenZ, minChenZ);
+
+  //maxChenX = max(chenX, maxChenX);
+  //maxChenY = max(chenY, maxChenY);
+  //maxChenZ = max(chenZ, maxChenZ);
+
+    analogWrite(Red, 255. * (chenX - minChenX) / (maxChenX - minChenX));
+    analogWrite(Green, 255. * (chenY - minChenY) / (maxChenY - minChenY));
+    analogWrite(Yellow, 255. * (chenZ - minChenZ) / (maxChenZ - minChenZ));
+
+  //PRINTLN("... done.");
+  }
+}
+
 void handleLEDsLoop() {
   EVERY_N_MILLISECONDS (5)
   {
+//    PRINT("LED loop");
+    uint8_t redness = pow((1.0 + sin(.015 * loopCounter)) / 2.0, 1.7) * 255.;
+    uint8_t yellowness = pow((1.0 + sin(.02 * loopCounter + 2.0 / 3.0 * M_PI)) / 2.0, 1.7) * 255.;
+    uint8_t greenness = pow((1.0 + sin(.025 * loopCounter + 4.0 / 3.0 * M_PI)) / 2.0, 1.7) * 255.;
+  //  PRINTLN("Redness");
+    /*
     if (redOn) {
       brightRed = brightRed - 3;
     } else {
@@ -125,11 +178,11 @@ void handleLEDsLoop() {
       brightGreen = brightGreen - 1;
     } else {
       brightGreen = 0;
-    }
+    }*/
+  analogWrite(Red, redness);
+  analogWrite(Yellow, yellowness);
+  analogWrite(Green, greenness);
   }
-  analogWrite(Red, brightRed);
-  analogWrite(Yellow, brightYellow);
-  analogWrite(Green, brightGreen);
 }
 
 void toggleLEDs() {
@@ -251,6 +304,12 @@ void setupServer() {
     digitalWrite(led, 1);
     String commandMenu = renderCommandMenu();
     commandMenu += "<p>Challenge: If you manage to sync the leds to the song <a href=\"https://www.youtube.com/watch?v=rmgf60CI_ks\" target=\"_blank\">Trans-Siberian Orchestra: Wizards in Winter</a> until XMAS eve 2018, you will be rewarded either with a box of Club Mate or a cask of beer by Uli.</p>";
+    commandMenu += "<br/><p>";
+    commandMenu += "<b>Chen Attractor Debug output</b><br/>";
+    commandMenu += "MinChenX: " + String(minChenX, 5) + " MaxChenX: " + String(maxChenX, 5) + "<br/>";
+    commandMenu += "MinChenY: " + String(minChenY, 5) + " MaxChenY: " + String(maxChenY, 5) + "<br/>";
+    commandMenu += "MinChenZ: " + String(minChenZ, 5) + " MaxChenZ: " + String(maxChenZ, 5) + "<br/>";
+    commandMenu += "</p>";
     server.send(200, "text/html", commandMenu);
     digitalWrite(led, 0);
   });
