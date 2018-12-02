@@ -5,9 +5,12 @@ This software is built for a for WEMOS D1 mini to control the LEDs of modified e
 
 ## Desired features
 
-- [ ] proper encapsulation of animation functions
-- [ ] more animations for LEDs
-	- [x] wrote Chen attractor function with Marijn
+- [x] proper encapsulation of animation functions
+- [x] more animations for LEDs
+	- [x] simple edgy basic animation
+	- [x] smooth sine and cosine wave animation
+	- [x] seemingly random Chen attractor function with Marijn
+- [ ] show hostname and IP address in small OLED display
 - [ ] timer function for automatic wakeup/sleep (maybe based on location and sundown/sunrise?)
 - [ ] crowd control of multiple trees at once
 
