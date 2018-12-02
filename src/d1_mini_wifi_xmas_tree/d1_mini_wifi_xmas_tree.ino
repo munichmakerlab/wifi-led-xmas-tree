@@ -30,7 +30,6 @@ const int led = 13;
 #endif
 
 #define DATA_PIN    D4
-//#define CLK_PIN   4
 #define LED_TYPE    WS2812B
 #define COLOR_ORDER GRB
 #define NUM_LEDS    1
@@ -38,7 +37,7 @@ CRGB topLed[NUM_LEDS];
 
 #define FULL_BRIGHTNESS  255
 #define HALF_BRIGHTNESS  127
-#define RECONNECT_DELAY_MS  500
+#define ONE_SECOND  1000
 
 #define Red  D1
 #define Yellow  D2
@@ -86,13 +85,12 @@ int loopCounter = 0;
 ESP8266WebServer server(80);
 
 void setup() {
-  // put your setup code here, to run once:
   delay(3000);
   Serial.begin(115200);
-//  PRINTLN("Using FASTLED version " + FASTLED_VERSION);
+  PRINTLN("Setting up...");
+  Serial.printf("Using FASTLED version [%u]: ", FASTLED_VERSION);
   initTopLED();
   initOuterLEDs();
-  PRINTLN("Setting up...");
   setupServer();
   PRINTLN("...finished with setup");
 }
@@ -199,6 +197,7 @@ void calculateSinCosAnimation() {
   }
 }
 
+// simple yet effective edgy basic animation
 void calculateSimpleAnimation() {
   EVERY_N_MILLISECONDS (5) {
     brightRed = brightRed - 3;
@@ -221,14 +220,14 @@ void setupServer() {
   // Wait for connection
   long waiting = 0;
   while (WiFi.status() != WL_CONNECTED) {
-    delay(RECONNECT_DELAY_MS);
-    waiting = waiting + RECONNECT_DELAY_MS;
+    delay(ONE_SECOND);
+    waiting = waiting + ONE_SECOND;
     PRINT(".");
-    if(waiting > (20 * RECONNECT_DELAY_MS)) {
+    if(waiting > (15 * ONE_SECOND)) {
       break;
     }
   }
-  if(!WL_CONNECTED) {
+  if(WiFi.status() != WL_CONNECTED) {
     PRINTLN("Unable to connect to WiFi. Starting standard blinking procedure...");
   }
   else {
@@ -318,13 +317,15 @@ void setupServer() {
   
     server.on("/on", []() {
       digitalWrite(led, 1);
-      PRINTLN("on received");
+      PRINTLN("on received - restoring default values");
       FastLED.setBrightness(FULL_BRIGHTNESS);
       topOn = true;
+      animationTopOn = true;
+      outerAnimationType = ANIM_SINCOS;
       greenOn = true;
       redOn = true;
       yellowOn = true;
-      server.send(200, "text/html", renderCommandMenu() + "switching all lights on <br/>" );
+      server.send(200, "text/html", renderCommandMenu() + "restoring default values <br/>" );
       digitalWrite(led, 0);
     });
   
