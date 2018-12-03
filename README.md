@@ -5,6 +5,8 @@ This software is built for a for WEMOS D1 mini to control the LEDs of modified e
 
 ## Desired features
 
+- [ ] spawn own WiFi network to allow manual configuration if connection to WiFi failed
+- [ ] implement updater to download and install new firmware versions
 - [x] proper encapsulation of animation functions
 - [x] more animations for LEDs
 	- [x] simple edgy basic animation
