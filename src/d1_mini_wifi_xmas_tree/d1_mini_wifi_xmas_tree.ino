@@ -17,6 +17,16 @@
  #define PRINTLN(x) 
 #endif
 
+//Spawn an accesspoint/connect to WiFi given
+const bool isAP = false;
+IPAddress local_IP(2,2,2,2);
+IPAddress subnet(255,255,255,0);
+
+//AP settings
+#define AP_NAME "Xmas-Lights"
+#define AP_PASSWORD "Xmas-Lights"
+
+//WiFi settings
 const char* ssid = "munichmakerlab";
 const char* password = "***topSecret***";
 const char* hostName = "WiFi-LED-XMAS-tree";
@@ -213,13 +223,18 @@ void toggleLEDs() {
 }
 
 void setupServer() {
-  WiFi.mode(WIFI_STA);
-  WiFi.hostname(hostName);
-  WiFi.begin(ssid, password);
-  PRINTLN("Connecting");
+  if(isAP) {
+    WiFi.softAPConfig(local_IP, local_IP, subnet);
+    WiFi.softAP(AP_NAME,AP_PASSWORD);
+  } else {
+    WiFi.mode(WIFI_STA);
+    WiFi.hostname(hostName);
+    WiFi.begin(ssid, password);
+    PRINTLN("Connecting");
+  }  
   // Wait for connection
   long waiting = 0;
-  while (WiFi.status() != WL_CONNECTED) {
+  while ((WiFi.status() != WL_CONNECTED) && !isAP) {
     delay(ONE_SECOND);
     waiting = waiting + ONE_SECOND;
     PRINT(".");
@@ -227,7 +242,9 @@ void setupServer() {
       break;
     }
   }
-  if(WiFi.status() != WL_CONNECTED) {
+  
+  //Don't wait for connection if we are the AP
+  if((WiFi.status() != WL_CONNECTED) && !isAP) {
     PRINTLN("Unable to connect to WiFi. Starting standard blinking procedure...");
   }
   else {
